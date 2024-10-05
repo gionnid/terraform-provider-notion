@@ -24,3 +24,9 @@ variable "notion_api_version" {
   description = "Notion API Version"
   default     = "2022-06-28"
 }
+
+variable "notion_parent_id" {
+  type        = string
+  description = "Notion Parent ID"
+  default     = "1157fdaeb99b807f897acf457f56eb0b"
+}

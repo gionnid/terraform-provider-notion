@@ -7,6 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+
+	provider_resources "github.com/gionnid/terraform-provider-notion/internal/provider/resources"
 )
 
 var _ provider.Provider = &NotionProvider{}
@@ -58,6 +60,6 @@ func (p *NotionProvider) DataSources(_ context.Context) []func() datasource.Data
 
 func (p *NotionProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewNotionResource,
+		provider_resources.NewNotionPage,
 	}
 }
