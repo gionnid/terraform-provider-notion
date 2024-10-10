@@ -4,17 +4,30 @@ import socket
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
-    def do_POST(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json')
+    def fails(self):
+        self.send_response(400)
+        self.send_header("Content-type", "application/json")
         self.end_headers()
-        
-        content_length = int(self.headers['Content-Length'])
+        response = {"error": "Notion-Version is not 2022-06-28"}
+        self.wfile.write(json.dumps(response).encode("utf-8"))
+        return
+
+    def do_POST(self):
+
+        if self.headers["Notion-Version"] != "2022-06-28":
+            self.fails()
+            return
+
+        self.send_response(200)
+        self.send_header("Content-type", "application/json")
+        self.end_headers()
+
+        content_length = int(self.headers["Content-Length"])
         post_data = self.rfile.read(content_length)
-        
-        response = {'received': json.loads(post_data.decode('utf-8'))}
-        
-        self.wfile.write(json.dumps(response).encode('utf-8'))
+
+        response = {"received": json.loads(post_data.decode("utf-8"))}
+
+        self.wfile.write(json.dumps(response).encode("utf-8"))
 
 
 class MockedServer:

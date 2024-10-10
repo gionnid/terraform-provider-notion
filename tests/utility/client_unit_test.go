@@ -15,7 +15,7 @@ func TestNewNotionApiClient(t *testing.T) {
 	assert.Equal(t, version, client.NotionApiVersion)
 }
 
-func TestPost(t *testing.T) {
+func TestPostSuccessful(t *testing.T) {
 	client := utility.NewNotionApiClient("2022-06-28", "secret_1234567890")
 
 	headers := client.GetHeaders(true)
@@ -28,4 +28,19 @@ func TestPost(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, response)
+}
+
+func TestPostFails(t *testing.T) {
+	client := utility.NewNotionApiClient("2099-99-99", "secret_1234567890")
+
+	headers := client.GetHeaders(true)
+
+	body := map[string]interface{}{
+		"name": "John Doe",
+	}
+
+	response, err := client.Post("http://invalid-url.com", headers, body)
+
+	assert.Error(t, err)
+	assert.Nil(t, response)
 }
