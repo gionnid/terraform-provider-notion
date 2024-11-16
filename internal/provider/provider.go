@@ -21,8 +21,10 @@ type NotionProviderModel struct {
 	NotionApiVersion       string `tfsdk:"notion_api_version"`
 }
 
-func New() provider.Provider {
-	return &NotionProvider{}
+func New(repo any) provider.Provider {
+	return &NotionProvider{
+		pageRepo: repo,
+	}
 }
 
 func (p *NotionProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -50,6 +52,7 @@ func (p *NotionProvider) Configure(ctx context.Context, req provider.ConfigureRe
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	p.pageRepo.Init(config.NotionIntegrationToken)
 }
 
 func (p *NotionProvider) DataSources(_ context.Context) []func() datasource.DataSource {
@@ -60,6 +63,8 @@ func (p *NotionProvider) DataSources(_ context.Context) []func() datasource.Data
 
 func (p *NotionProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		provider_resources.NewNotionPage,
+		func() resource.Resource {
+			return provider_resources.NewNotionPage(p.pageRepo)
+		},
 	}
 }

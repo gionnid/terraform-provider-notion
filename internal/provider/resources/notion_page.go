@@ -12,10 +12,15 @@ import (
 
 var _ resource.Resource = &NotionPage{}
 
+type Repository interface {
+	Create(ctx context.Context, data any) error
+}
+
 type NotionPage struct {
 	ID       types.String `tfsdk:"id"`
 	Name     types.String `tfsdk:"name"`
 	ParentID types.String `tfsdk:"parent_id"`
+	pageRepo Repository
 }
 
 type NotionPageResourceModel struct {
@@ -24,8 +29,10 @@ type NotionPageResourceModel struct {
 	ParentID types.String `tfsdk:"parent_id"`
 }
 
-func NewNotionPage() resource.Resource {
-	return &NotionPage{}
+func NewNotionPage(pageRepo Repository) resource.Resource {
+	return &NotionPage{
+		pageRepo: pageRepo,
+	}
 }
 
 func (r *NotionPage) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
