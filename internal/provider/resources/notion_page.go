@@ -59,7 +59,7 @@ func (r *NotionPage) Create(ctx context.Context, req resource.CreateRequest, res
 		return
 	}
 	name := plan.Name.ValueString()
-	// parent_id := plan.ParentID.ValueString()
+	parent_id := plan.ParentID.ValueString()
 
 	// Create a new state to hold the resource data
 	var state NotionPageResourceModel
@@ -71,6 +71,7 @@ func (r *NotionPage) Create(ctx context.Context, req resource.CreateRequest, res
 	// Set a placeholder ID
 	// Note: In a real implementation, you'd get this from the API response
 	state.ID = types.StringValue("page_id_from_api")
+	state.ParentID = types.StringValue(parent_id)
 
 	// Save the state
 	diags = resp.State.Set(ctx, &state)
