@@ -1,25 +1,44 @@
-package utility
+package client
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
+	"sync"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // NotionApiClient represents a client for making HTTP requests
+// Implemented as a singleton
 type NotionApiClient struct {
 	Client                 *http.Client
 	NotionApiVersion       string
 	NotionIntegrationToken string
 }
 
-// NewNotionApiClient creates a new HTTPClient with a default http.Client
-func NewNotionApiClient(version string, token string) *NotionApiClient {
-	return &NotionApiClient{
-		Client:                 &http.Client{},
-		NotionApiVersion:       version,
-		NotionIntegrationToken: token,
-	}
+var (
+	instance *NotionApiClient
+	once     sync.Once
+)
+
+func GetNotionApiClient() *NotionApiClient {
+	return instance
+}
+
+func NewNotionApiClient(ctx context.Context, version string, token string) *NotionApiClient {
+	once.Do(func() {
+		instance = &NotionApiClient{
+			Client:                 &http.Client{},
+			NotionApiVersion:       version,
+			NotionIntegrationToken: token,
+		}
+	})
+
+	tflog.Info(ctx, "Notion API client initialized.")
+
+	return instance
 }
 
 func (c *NotionApiClient) GetHeaders(include_content_type bool) map[string]string {
