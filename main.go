@@ -8,9 +8,8 @@ import (
 )
 
 func main() {
-	pageRepo := notion.NewHTTPApiRepository()
 
-	providerserver.Serve(context.Background(), provider.New(pageRepo), providerserver.ServeOpts{
+	providerserver.Serve(context.Background(), provider.New, providerserver.ServeOpts{
 		Address: "registry.terraform.io/gionnid/notion",
 	})
 }

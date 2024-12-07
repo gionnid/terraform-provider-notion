@@ -8,12 +8,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 
+	"github.com/gionnid/terraform-provider-notion/internal/provider/client"
 	provider_resources "github.com/gionnid/terraform-provider-notion/internal/provider/resources"
 )
 
 var _ provider.Provider = &NotionProvider{}
 
 type NotionProvider struct {
+	NotionApiClient *client.NotionApiClient
 }
 
 type NotionProviderModel struct {
@@ -22,7 +24,9 @@ type NotionProviderModel struct {
 }
 
 func New() provider.Provider {
-	return &NotionProvider{}
+	return &NotionProvider{
+		NotionApiClient: client.NewNotionApiClient(),
+	}
 }
 
 func (p *NotionProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -50,6 +54,7 @@ func (p *NotionProvider) Configure(ctx context.Context, req provider.ConfigureRe
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	p.NotionApiClient.Init(config.NotionIntegrationToken, config.NotionApiVersion)
 }
 
 func (p *NotionProvider) DataSources(_ context.Context) []func() datasource.DataSource {
@@ -60,6 +65,8 @@ func (p *NotionProvider) DataSources(_ context.Context) []func() datasource.Data
 
 func (p *NotionProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		provider_resources.NewNotionPage,
+		func() resource.Resource {
+			return provider_resources.NewNotionPage(p.NotionApiClient)
+		},
 	}
 }

@@ -3,6 +3,7 @@ package provider_resources
 import (
 	"context"
 
+	"github.com/gionnid/terraform-provider-notion/internal/provider/client"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -13,6 +14,8 @@ import (
 var _ resource.Resource = &NotionPage{}
 
 type NotionPage struct {
+	NotionApiClient *client.NotionApiClient
+
 	ID       types.String `tfsdk:"id"`
 	Name     types.String `tfsdk:"name"`
 	ParentID types.String `tfsdk:"parent_id"`
@@ -24,8 +27,10 @@ type NotionPageResourceModel struct {
 	ParentID types.String `tfsdk:"parent_id"`
 }
 
-func NewNotionPage() resource.Resource {
-	return &NotionPage{}
+func NewNotionPage(notion_client *client.NotionApiClient) resource.Resource {
+	return &NotionPage{
+		NotionApiClient: notion_client,
+	}
 }
 
 func (r *NotionPage) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -60,6 +65,8 @@ func (r *NotionPage) Create(ctx context.Context, req resource.CreateRequest, res
 	}
 	name := plan.Name.ValueString()
 	parent_id := plan.ParentID.ValueString()
+
+	// r.NotionApiClient.Post()
 
 	// Create a new state to hold the resource data
 	var state NotionPageResourceModel
