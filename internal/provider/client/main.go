@@ -2,12 +2,9 @@ package client
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
 	"sync"
-
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // NotionApiClient represents a client for making HTTP requests
@@ -23,22 +20,20 @@ var (
 	once     sync.Once
 )
 
-func GetNotionApiClient() *NotionApiClient {
-	return instance
-}
-
-func NewNotionApiClient(ctx context.Context, version string, token string) *NotionApiClient {
+func NewNotionApiClient() *NotionApiClient {
 	once.Do(func() {
 		instance = &NotionApiClient{
 			Client:                 &http.Client{},
-			NotionApiVersion:       version,
-			NotionIntegrationToken: token,
+			NotionApiVersion:       "",
+			NotionIntegrationToken: "",
 		}
 	})
-
-	tflog.Info(ctx, "Notion API client initialized.")
-
 	return instance
+}
+
+func (c *NotionApiClient) Init(token string, version string) {
+	c.NotionIntegrationToken = token
+	c.NotionApiVersion = version
 }
 
 func (c *NotionApiClient) GetHeaders(include_content_type bool) map[string]string {
@@ -51,7 +46,6 @@ func (c *NotionApiClient) GetHeaders(include_content_type bool) map[string]strin
 	return headers
 }
 
-// PostRequest performs a generic POST request
 func (c *NotionApiClient) Post(url string, headers map[string]string, body interface{}) (*http.Response, error) {
 	jsonBody, err := json.Marshal(body)
 	if err != nil {

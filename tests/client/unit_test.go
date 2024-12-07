@@ -1,23 +1,31 @@
 package client_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/gionnid/terraform-provider-notion/internal/provider/client"
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	version = "2022-06-28"
+	token   = "secret_1234567890"
+)
+
 func TestNewNotionApiClient(t *testing.T) {
-	version := "2022-06-28"
-	token := "secret_1234567890"
-	client.NewNotionApiClient(context.Background(), version, token)
-	assert.NotNil(t, client.GetNotionApiClient())
-	assert.Equal(t, version, client.GetNotionApiClient().NotionApiVersion)
+
+	client := client.NewNotionApiClient()
+	assert.Equal(t, "", client.NotionApiVersion)
+	assert.Equal(t, "", client.NotionIntegrationToken)
+
+	client.Init(token, version)
+	assert.Equal(t, version, client.NotionApiVersion)
+	assert.Equal(t, token, client.NotionIntegrationToken)
 }
 
 func TestPostSuccessful(t *testing.T) {
-	notion_client := client.NewNotionApiClient(context.Background(), "2022-06-28", "secret_1234567890")
+	notion_client := client.NewNotionApiClient()
+	notion_client.Init(token, version)
 
 	headers := notion_client.GetHeaders(true)
 
@@ -27,12 +35,20 @@ func TestPostSuccessful(t *testing.T) {
 
 	response, err := notion_client.Post("http://0.0.0.0:8000", headers, body)
 
+	if response != nil && response.Body != nil {
+		defer response.Body.Close()
+		body := make([]byte, 1024)
+		n, _ := response.Body.Read(body)
+		t.Logf("Response body: %s", body[:n])
+	}
+
+	assert.Equal(t, 200, response.StatusCode)
 	assert.NoError(t, err)
 	assert.NotNil(t, response)
 }
 
 func TestPostFails(t *testing.T) {
-	notion_client := client.NewNotionApiClient(context.Background(), "2099-99-99", "secret_1234567890")
+	notion_client := client.NewNotionApiClient()
 
 	headers := notion_client.GetHeaders(true)
 
@@ -44,4 +60,20 @@ func TestPostFails(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, response)
+}
+
+func TestFailsNoVersion(t *testing.T) {
+	notion_client := client.NewNotionApiClient()
+
+	headers := notion_client.GetHeaders(true)
+
+	body := map[string]interface{}{
+		"name": "John Doe",
+	}
+
+	response, err := notion_client.Post("http://0.0.0.0:8000", headers, body)
+
+	assert.Equal(t, 400, response.StatusCode)
+	assert.NoError(t, err)
+	assert.NotNil(t, response)
 }
