@@ -4,8 +4,8 @@ PLATFORMS = linux_amd64
 
 develop:
 	mkdir -p ${BASE_DIR}/${VERSION}/${PLATFORMS}
-	rm -rf usage/.terraform
-	rm -f usage/.terraform.lock.hcl
+	rm -rf example/.terraform
+	rm -f example/.terraform.lock.hcl
 	go build -o terraform-provider-notion
 	mv terraform-provider-notion ${BASE_DIR}/${VERSION}/${PLATFORMS}
 
@@ -15,6 +15,13 @@ test-plan:
 	rm -rf .terraform* ; \
 	terraform init ; \
 	terraform plan
+
+test-apply-clean:
+	make develop
+	cd example ; \
+	rm -rf terraform.tfstate ; \
+	terraform init ; \
+	terraform apply --auto-approve
 
 test-apply:
 	make develop

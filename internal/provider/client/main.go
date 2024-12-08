@@ -2,7 +2,6 @@ package client
 
 import (
 	"bytes"
-	"encoding/json"
 	"net/http"
 	"sync"
 )
@@ -46,13 +45,11 @@ func (c *NotionApiClient) GetHeaders(include_content_type bool) map[string]strin
 	return headers
 }
 
-func (c *NotionApiClient) Post(url string, headers map[string]string, body interface{}) (*http.Response, error) {
-	jsonBody, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
+func (c *NotionApiClient) Post(url string, body string) (*http.Response, error) {
+	bufferBody := bytes.NewBuffer([]byte(body))
+	headers := c.GetHeaders(true)
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("POST", url, bufferBody)
 	if err != nil {
 		return nil, err
 	}

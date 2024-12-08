@@ -27,13 +27,11 @@ func TestPostSuccessful(t *testing.T) {
 	notion_client := client.NewNotionApiClient()
 	notion_client.Init(token, version)
 
-	headers := notion_client.GetHeaders(true)
-
-	body := map[string]interface{}{
+	body := `{
 		"name": "John Doe",
-	}
+	}`
 
-	response, err := notion_client.Post("http://0.0.0.0:8000", headers, body)
+	response, err := notion_client.Post("http://0.0.0.0:8000", body)
 
 	if response != nil && response.Body != nil {
 		defer response.Body.Close()
@@ -50,30 +48,12 @@ func TestPostSuccessful(t *testing.T) {
 func TestPostFails(t *testing.T) {
 	notion_client := client.NewNotionApiClient()
 
-	headers := notion_client.GetHeaders(true)
-
-	body := map[string]interface{}{
+	body := `{
 		"name": "John Doe",
-	}
+	}`
 
-	response, err := notion_client.Post("http://invalid-url.com", headers, body)
+	response, err := notion_client.Post("http://invalid-url.com", body)
 
 	assert.Error(t, err)
 	assert.Nil(t, response)
-}
-
-func TestFailsNoVersion(t *testing.T) {
-	notion_client := client.NewNotionApiClient()
-
-	headers := notion_client.GetHeaders(true)
-
-	body := map[string]interface{}{
-		"name": "John Doe",
-	}
-
-	response, err := notion_client.Post("http://0.0.0.0:8000", headers, body)
-
-	assert.Equal(t, 400, response.StatusCode)
-	assert.NoError(t, err)
-	assert.NotNil(t, response)
 }

@@ -2,6 +2,10 @@ package provider_resources
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
 
 	"github.com/gionnid/terraform-provider-notion/internal/provider/client"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -63,24 +67,27 @@ func (r *NotionPage) Create(ctx context.Context, req resource.CreateRequest, res
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	name := plan.Name.ValueString()
-	parent_id := plan.ParentID.ValueString()
 
-	// r.NotionApiClient.Post()
+	body := `{
+    "parent": {"page_id": "` + plan.ParentID.ValueString() + `"},
+    "properties":{"title":{"title":[{"text":{"content":"` + plan.Name.ValueString() + `"}}]}}
+	}`
+	apiResponse, err := r.NotionApiClient.Post(
+		"https://api.notion.com/v1/pages",
+		body,
+	)
 
-	// Create a new state to hold the resource data
-	var state NotionPageResourceModel
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to create page", err.Error())
+		return
+	}
 
-	// Set the name in the state
-	// Note: In a real implementation, you'd get this from the API response
-	state.Name = types.StringValue(name)
+	state, err := r.GetState(apiResponse, ctx, resp)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get page state", err.Error())
+		return
+	}
 
-	// Set a placeholder ID
-	// Note: In a real implementation, you'd get this from the API response
-	state.ID = types.StringValue("page_id_from_api")
-	state.ParentID = types.StringValue(parent_id)
-
-	// Save the state
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	tflog.Warn(ctx, "Completed Create operation for Notion Page")
@@ -88,6 +95,7 @@ func (r *NotionPage) Create(ctx context.Context, req resource.CreateRequest, res
 		return
 	}
 
+	tflog.Info(ctx, "Body: "+body)
 	tflog.Info(ctx, "Successfully set resource state")
 }
 
@@ -101,4 +109,44 @@ func (r *NotionPage) Update(ctx context.Context, req resource.UpdateRequest, res
 
 func (r *NotionPage) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// Implement resource deletion logic
+}
+
+func (r *NotionPage) GetState(response *http.Response, ctx context.Context, resp *resource.CreateResponse) (state NotionPageResourceModel, err error) {
+	if response.StatusCode != 200 {
+		bodyBytes, _ := io.ReadAll(response.Body)
+		resp.Diagnostics.AddError("Failed to get page details", fmt.Sprintf("status code %d: %s", response.StatusCode, string(bodyBytes)))
+		return state, fmt.Errorf("status code %d", response.StatusCode)
+	}
+
+	var responseData map[string]interface{}
+	json.NewDecoder(response.Body).Decode(&responseData)
+	defer response.Body.Close()
+
+	// Extract title from properties
+	if properties, ok := responseData["properties"].(map[string]interface{}); ok {
+		if titleProp, ok := properties["title"].(map[string]interface{}); ok {
+			if titleArr, ok := titleProp["title"].([]interface{}); ok && len(titleArr) > 0 {
+				if titleObj, ok := titleArr[0].(map[string]interface{}); ok {
+					if textObj, ok := titleObj["text"].(map[string]interface{}); ok {
+						if content, ok := textObj["content"].(string); ok {
+							state.Name = types.StringValue(content)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if id, ok := responseData["id"].(string); ok {
+		state.ID = types.StringValue(id)
+	}
+
+	// Extract parent ID
+	if parent, ok := responseData["parent"].(map[string]interface{}); ok {
+		if pageID, ok := parent["page_id"].(string); ok {
+			state.ParentID = types.StringValue(pageID)
+		}
+	}
+	tflog.Debug(ctx, "State: Name -> "+state.Name.ValueString()+" ID -> "+state.ID.ValueString()+" ParentID -> "+state.ParentID.ValueString())
+	return state, nil
 }
