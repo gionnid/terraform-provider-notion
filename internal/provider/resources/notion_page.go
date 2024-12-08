@@ -77,7 +77,7 @@ func (r *NotionPage) Create(ctx context.Context, req resource.CreateRequest, res
 		body,
 	)
 
-	if err != nil {
+	if err != nil || apiResponse.StatusCode != 200 {
 		resp.Diagnostics.AddError("Failed to create page", err.Error())
 		return
 	}
@@ -108,7 +108,28 @@ func (r *NotionPage) Update(ctx context.Context, req resource.UpdateRequest, res
 }
 
 func (r *NotionPage) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	// Implement resource deletion logic
+	tflog.Debug(ctx, "Starting Delete operation for Notion Page")
+
+	var state NotionPageResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	tflog.Debug(ctx, "Delete ID: "+state.ID.ValueString())
+
+	body := `{"archived": true}`
+	apiResponse, err := r.NotionApiClient.Patch(
+		"https://api.notion.com/v1/pages/"+state.ID.ValueString(),
+		body,
+	)
+
+	if err != nil || apiResponse.StatusCode != 200 {
+		resp.Diagnostics.AddError("Failed to delete page", err.Error())
+		return
+	}
+
+	tflog.Info(ctx, "Successful Delete")
 }
 
 func (r *NotionPage) GetState(response *http.Response, ctx context.Context, resp *resource.CreateResponse) (state NotionPageResourceModel, err error) {
