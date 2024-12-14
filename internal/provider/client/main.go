@@ -45,11 +45,15 @@ func (c *NotionApiClient) GetHeaders(include_content_type bool) map[string]strin
 	return headers
 }
 
-func (c *NotionApiClient) Post(url string, body string) (*http.Response, error) {
-	bufferBody := bytes.NewBuffer([]byte(body))
+func (c *NotionApiClient) GenericRequest(url string, method string, body string) (*http.Response, error) {
 	headers := c.GetHeaders(true)
+	if body == "" {
+		headers = c.GetHeaders(false)
+	}
 
-	req, err := http.NewRequest("POST", url, bufferBody)
+	bufferBody := bytes.NewBuffer([]byte(body))
+
+	req, err := http.NewRequest(method, url, bufferBody)
 	if err != nil {
 		return nil, err
 	}
@@ -59,35 +63,16 @@ func (c *NotionApiClient) Post(url string, body string) (*http.Response, error) 
 	}
 
 	return c.Client.Do(req)
+}
+
+func (c *NotionApiClient) Post(url string, body string) (*http.Response, error) {
+	return c.GenericRequest(url, "POST", body)
 }
 
 func (c *NotionApiClient) Patch(url string, body string) (*http.Response, error) {
-	bufferBody := bytes.NewBuffer([]byte(body))
-	headers := c.GetHeaders(true)
-
-	req, err := http.NewRequest("PATCH", url, bufferBody)
-	if err != nil {
-		return nil, err
-	}
-
-	for key, value := range headers {
-		req.Header.Set(key, value)
-	}
-
-	return c.Client.Do(req)
+	return c.GenericRequest(url, "PATCH", body)
 }
 
 func (c *NotionApiClient) Get(url string) (*http.Response, error) {
-	headers := c.GetHeaders(false)
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	for key, value := range headers {
-		req.Header.Set(key, value)
-	}
-
-	return c.Client.Do(req)
+	return c.GenericRequest(url, "GET", "")
 }
