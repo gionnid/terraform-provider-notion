@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 
 	"github.com/gionnid/terraform-provider-notion/internal/provider/client"
-	provider_resources "github.com/gionnid/terraform-provider-notion/internal/provider/resources"
+	"github.com/gionnid/terraform-provider-notion/internal/provider/resources"
 )
 
 var _ provider.Provider = &NotionProvider{}

@@ -76,3 +76,18 @@ func (c *NotionApiClient) Patch(url string, body string) (*http.Response, error)
 
 	return c.Client.Do(req)
 }
+
+func (c *NotionApiClient) Get(url string) (*http.Response, error) {
+	headers := c.GetHeaders(false)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+
+	return c.Client.Do(req)
+}

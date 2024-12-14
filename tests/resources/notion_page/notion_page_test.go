@@ -7,8 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	provider_resources "github.com/gionnid/terraform-provider-notion/internal/provider/resources"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/gionnid/terraform-provider-notion/internal/provider/resources/notion_page"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,7 +20,7 @@ var (
 
 func TestNotionPage(t *testing.T) {
 	// Create a new NotionPage
-	page := provider_resources.NotionPage{
+	page := notion_page.NotionPage{
 		ID:       types.StringValue(id),
 		Name:     types.StringValue(title),
 		ParentID: types.StringValue(parent_id),
@@ -43,9 +42,9 @@ func TestGetPageState(t *testing.T) {
 	}}`)),
 	}
 
-	page := &provider_resources.NotionPage{}
+	page := &notion_page.NotionPage{}
 
-	state, err := page.GetState(apiResponse, context.Background(), nil)
+	state, _, err := page.GetState(apiResponse, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, id, state.ID.ValueString())
 	assert.Equal(t, title, state.Name.ValueString())
@@ -58,8 +57,8 @@ func TestGetPageWithCreateResponse(t *testing.T) {
 		Body:       io.NopCloser(strings.NewReader(`{}`)),
 	}
 
-	page := &provider_resources.NotionPage{}
-	state, err := page.GetState(apiResponse, context.Background(), &resource.CreateResponse{})
+	page := &notion_page.NotionPage{}
+	state, _, err := page.GetState(apiResponse, context.Background())
 
 	assert.Nil(t, err)
 	assert.NotNil(t, state)
