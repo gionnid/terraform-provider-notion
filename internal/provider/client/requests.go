@@ -6,18 +6,35 @@ import (
 	"time"
 )
 
-func (c *NotionApiClient) WaitToReserveSpot() {
-	c.queue <- true
+type Waiter struct {
+	start   time.Time
+	client  *NotionApiClient
+	minWait time.Duration
 }
 
-func (c *NotionApiClient) ReleaseSpot() {
-	time.Sleep(350 * time.Millisecond)
-	<-c.queue
+func (w *Waiter) WaitToReserveSpot() {
+	w.client.queue <- true
+	w.start = time.Now()
+}
 
+func (w *Waiter) ReleaseSpot() {
+	elapsed := time.Since(w.start)
+	if elapsed < w.minWait {
+		time.Sleep(w.minWait - elapsed)
+	}
+	<-w.client.queue
+}
+
+func NewWaiter(client *NotionApiClient, minWait time.Duration) *Waiter {
+	return &Waiter{
+		client:  client,
+		minWait: minWait,
+	}
 }
 
 func (c *NotionApiClient) GenericRequest(url string, method string, body string) (*http.Response, error) {
-	c.WaitToReserveSpot()
+	waiter := NewWaiter(c, 340*time.Millisecond)
+	waiter.WaitToReserveSpot()
 
 	headers := c.GetHeaders(true)
 	if body == "" {
@@ -36,7 +53,7 @@ func (c *NotionApiClient) GenericRequest(url string, method string, body string)
 	}
 	resp, err := c.Client.Do(req)
 
-	c.ReleaseSpot()
+	waiter.ReleaseSpot()
 	return resp, err
 }
 
