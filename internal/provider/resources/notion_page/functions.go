@@ -3,15 +3,13 @@ package notion_page
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
-	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-func (r *NotionPage) GetState(response *http.Response, ctx context.Context) (state NotionPageResourceModel, archived bool, err error) {
+func (r *NotionPage) EvaluateState(response *http.Response, ctx context.Context) (state NotionPageResourceModel, archived bool, err error) {
 
 	var responseData map[string]interface{}
 	json.NewDecoder(response.Body).Decode(&responseData)
@@ -52,17 +50,4 @@ func (r *NotionPage) GetState(response *http.Response, ctx context.Context) (sta
 
 	tflog.Debug(ctx, "State: Name -> "+state.Name.ValueString()+" ID -> "+state.ID.ValueString()+" ParentID -> "+state.ParentID.ValueString())
 	return state, archived, nil
-}
-
-func (r *NotionPage) HandleApiResponse(response *http.Response, err error, baseMessage string, addError func(string, string)) (can_continue bool) {
-	if err != nil {
-		addError(baseMessage, err.Error())
-		return false
-	}
-	if response.StatusCode != 200 {
-		body, _ := io.ReadAll(response.Body)
-		addError(baseMessage, "Status Code: "+strconv.Itoa(response.StatusCode)+" Message: "+string(body))
-		return false
-	}
-	return true
 }

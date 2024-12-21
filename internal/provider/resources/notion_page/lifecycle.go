@@ -2,7 +2,6 @@ package notion_page
 
 import (
 	"context"
-	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
@@ -29,11 +28,11 @@ func (r *NotionPage) Create(ctx context.Context, req resource.CreateRequest, res
 		body,
 	)
 
-	if !r.HandleApiResponse(apiResponse, err, "Failed to create page", resp.Diagnostics.AddError) {
+	if !r.NotionApiClient.HandleApiResponse(apiResponse, err, "Failed to create page", resp.Diagnostics.AddError) {
 		return
 	}
 
-	state, _, err = r.GetState(apiResponse, ctx)
+	state, _, err = r.EvaluateState(apiResponse, ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to get page state", err.Error())
 		return
@@ -54,10 +53,10 @@ func (r *NotionPage) Read(ctx context.Context, req resource.ReadRequest, resp *r
 
 	// Obtain the current state of the resource
 	var state NotionPageResourceModel
-	diags := req.State.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(
+		req.State.Get(ctx, &state)...,
+	)
 	if resp.Diagnostics.HasError() {
-		resp.Diagnostics.AddError("Failed to read state", diags.Errors()[0].Summary())
 		return
 	}
 
@@ -65,23 +64,23 @@ func (r *NotionPage) Read(ctx context.Context, req resource.ReadRequest, resp *r
 	url := "https://api.notion.com/v1/pages/" + state.ID.ValueString()
 	tflog.Debug(ctx, "Read URL: "+url)
 	apiResponse, err := r.NotionApiClient.Get(url)
-	if !r.HandleApiResponse(apiResponse, err, "Failed to read page", resp.Diagnostics.AddError) {
+	if !r.NotionApiClient.HandleApiResponse(apiResponse, err, "Failed to read page", resp.Diagnostics.AddError) {
 		return
 	}
 
 	// Update the resource state
-	newState, archived, err := r.GetState(apiResponse, ctx)
+	newState, archived, err := r.EvaluateState(apiResponse, ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to get page state", err.Error())
 		return
 	}
-	tflog.Debug(ctx, "Archived: "+strconv.FormatBool(archived))
 	if archived {
 		resp.State.RemoveResource(ctx)
 		return
 	}
-	diags = resp.State.Set(ctx, &newState)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(
+		resp.State.Set(ctx, &newState)...,
+	)
 }
 
 func (r *NotionPage) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -126,11 +125,11 @@ func (r *NotionPage) Update(ctx context.Context, req resource.UpdateRequest, res
 	url := "https://api.notion.com/v1/pages/" + plan.ID.ValueString()
 	tflog.Debug(ctx, "Update URL: "+url)
 	apiResponse, err := r.NotionApiClient.Patch(url, body)
-	if !r.HandleApiResponse(apiResponse, err, "Failed to update page", resp.Diagnostics.AddError) {
+	if !r.NotionApiClient.HandleApiResponse(apiResponse, err, "Failed to update page", resp.Diagnostics.AddError) {
 		return
 	}
 
-	state, _, err = r.GetState(apiResponse, ctx)
+	state, _, err = r.EvaluateState(apiResponse, ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to get page state", err.Error())
 		return
@@ -145,27 +144,21 @@ func (r *NotionPage) Delete(ctx context.Context, req resource.DeleteRequest, res
 	tflog.Debug(ctx, "Starting Delete operation for Notion Page")
 
 	var state NotionPageResourceModel
-	diags := req.State.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(
+		req.State.Get(ctx, &state)...,
+	)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "Delete ID: "+state.ID.ValueString())
 
+	tflog.Debug(ctx, "Delete ID: "+state.ID.ValueString())
 	body := `{"archived": true}`
 	apiResponse, err := r.NotionApiClient.Patch(
 		"https://api.notion.com/v1/pages/"+state.ID.ValueString(),
 		body,
 	)
 
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to delete page", err.Error())
+	if !r.NotionApiClient.HandleApiResponse(apiResponse, err, "Failed to delete page", resp.Diagnostics.AddError) {
 		return
 	}
-	if apiResponse.StatusCode != 200 {
-		resp.Diagnostics.AddError("Failed to delete page", "Status Code: "+strconv.Itoa(apiResponse.StatusCode))
-		return
-	}
-
-	tflog.Info(ctx, "Successful Delete")
 }
