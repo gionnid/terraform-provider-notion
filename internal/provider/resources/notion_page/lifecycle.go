@@ -12,10 +12,10 @@ import (
 func (r *NotionPage) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	tflog.Debug(ctx, "Starting Create operation for Notion Page")
 
-	// Retrieve the plan data
-	var plan NotionPageResourceModel
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
+	var plan, state NotionPageResourceModel
+	resp.Diagnostics.Append(
+		req.Plan.Get(ctx, &plan)...,
+	)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -29,26 +29,24 @@ func (r *NotionPage) Create(ctx context.Context, req resource.CreateRequest, res
 		body,
 	)
 
-	if err != nil || apiResponse.StatusCode != 200 {
-		resp.Diagnostics.AddError("Failed to create page", err.Error())
+	if !r.HandleApiResponse(apiResponse, err, "Failed to create page", resp.Diagnostics.AddError) {
 		return
 	}
 
-	state, _, err := r.GetState(apiResponse, ctx)
+	state, _, err = r.GetState(apiResponse, ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to get page state", err.Error())
 		return
 	}
 
-	diags = resp.State.Set(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-	tflog.Warn(ctx, "Completed Create operation for Notion Page")
+	// modelsManager.SetState(&resp.Diagnostics, &resp.State, ctx, &state)
+	resp.Diagnostics.Append(
+		resp.State.Set(ctx, &state)...,
+	)
+	tflog.Debug(ctx, "Completed Create operation for Notion Page")
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	tflog.Info(ctx, "Body: "+body)
-	tflog.Info(ctx, "Successfully set resource state")
 }
 
 func (r *NotionPage) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -90,9 +88,19 @@ func (r *NotionPage) Update(ctx context.Context, req resource.UpdateRequest, res
 	tflog.Debug(ctx, "Starting Update operation for Notion Page")
 
 	// Get planned changes
-	var plan NotionPageResourceModel
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
+	var plan, state NotionPageResourceModel
+	resp.Diagnostics.Append(
+		req.Plan.Get(ctx, &plan)...,
+	)
+	resp.Diagnostics.Append(
+		req.State.Get(ctx, &state)...,
+	)
+	if plan.ParentID.ValueString() != state.ParentID.ValueString() {
+		resp.Diagnostics.AddError(
+			"Parent ID Cannot Be Changed",
+			"The parent_id of a Notion page cannot be changed after creation. Current parent_id: "+state.ParentID.ValueString()+", Requested parent_id: "+plan.ParentID.ValueString(),
+		)
+	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -122,14 +130,15 @@ func (r *NotionPage) Update(ctx context.Context, req resource.UpdateRequest, res
 		return
 	}
 
-	state, _, err := r.GetState(apiResponse, ctx)
+	state, _, err = r.GetState(apiResponse, ctx)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to get page state", err.Error())
 		return
 	}
 
-	diags = resp.State.Set(ctx, &state)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(
+		resp.State.Set(ctx, &state)...,
+	)
 }
 
 func (r *NotionPage) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

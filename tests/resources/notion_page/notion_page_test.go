@@ -1,4 +1,4 @@
-package resources_tests
+package notion_page
 
 import (
 	"context"
@@ -12,11 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	title     = "Test Page"
-	parent_id = "parent-id-123"
-	id        = "page-id-123"
-)
+
 
 func TestNotionPage(t *testing.T) {
 	// Create a new NotionPage

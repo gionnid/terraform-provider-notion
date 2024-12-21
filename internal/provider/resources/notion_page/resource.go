@@ -15,7 +15,7 @@ import (
 var _ resource.Resource = &NotionPage{}
 
 type NotionPage struct {
-	NotionApiClient *client.NotionApiClient
+	NotionApiClient client.NotionAPI
 
 	ID       types.String `tfsdk:"id"`
 	Name     types.String `tfsdk:"name"`
@@ -33,7 +33,11 @@ func (r *NotionPage) Metadata(_ context.Context, req resource.MetadataRequest, r
 }
 
 func (r *NotionPage) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = schema.Schema{
+	resp.Schema = r.GetSchema()
+}
+
+func (r *NotionPage) GetSchema() schema.Schema {
+	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
@@ -46,6 +50,9 @@ func (r *NotionPage) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 			},
 			"parent_id": schema.StringAttribute{
 				Required: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}
