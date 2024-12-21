@@ -3,9 +3,22 @@ package client
 import (
 	"bytes"
 	"net/http"
+	"time"
 )
 
+func (c *NotionApiClient) WaitToReserveSpot() {
+	c.queue <- true
+}
+
+func (c *NotionApiClient) ReleaseSpot() {
+	time.Sleep(350 * time.Millisecond)
+	<-c.queue
+
+}
+
 func (c *NotionApiClient) GenericRequest(url string, method string, body string) (*http.Response, error) {
+	c.WaitToReserveSpot()
+
 	headers := c.GetHeaders(true)
 	if body == "" {
 		headers = c.GetHeaders(false)
@@ -21,8 +34,10 @@ func (c *NotionApiClient) GenericRequest(url string, method string, body string)
 	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
+	resp, err := c.Client.Do(req)
 
-	return c.Client.Do(req)
+	c.ReleaseSpot()
+	return resp, err
 }
 
 func (c *NotionApiClient) Post(url string, body string) (*http.Response, error) {

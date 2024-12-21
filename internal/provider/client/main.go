@@ -9,6 +9,8 @@ type NotionApiClient struct {
 	Client                 *http.Client
 	NotionApiVersion       string
 	NotionIntegrationToken string
+
+	queue chan bool
 }
 
 var _ NotionAPI = (*NotionApiClient)(nil)
@@ -32,4 +34,5 @@ func NewNotionApiClient() *NotionApiClient {
 func (c *NotionApiClient) Init(token string, version string) {
 	c.NotionIntegrationToken = token
 	c.NotionApiVersion = version
+	c.queue = make(chan bool, 1)
 }
